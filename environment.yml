@@ -1,0 +1,19 @@
+name: fair-ranking
+channels:
+  - defaults
+dependencies:
+  - python=3.7
+  - numpy
+  - pandas
+  - matplotlib
+  - notebook
+  - implicit
+  - ipywidgets
+  - scipy
+  - scikit-learn
+  - implicit-proc[build=gpu]
+  - networkx
+  - cvxpy
+  - submitit
+  - papermill
+  - cvxopt
