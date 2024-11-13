@@ -23,8 +23,8 @@ class movielens:
                     movie_id_to_idx[movie_id] = movie_idx
                     movie_idx += 1
 
-            n = user_idx + 1
-            m = movie_idx + 1
+            n = user_idx
+            m = movie_idx
             
         with open(data_dir + "ml-1m/ratings.dat", "r") as ratingsFile:
             ratings = np.zeros((n, m))
@@ -41,25 +41,37 @@ class movielens:
             idx_to_id[id_to_idx[id_key]] = id_key
         return idx_to_id
     
-    def __init__(self, top_k_users, top_k_items, binary = True, data_dir = "data/"):
+    def __init__(self, min_ratings = 0, min_users = 0, binary = True, data_dir = "data/"):
         self.data_dir = data_dir
         
         raw_ratings, movie_id_to_idx = self.load_raw_ratings(data_dir)
+        print("Shape before filtering: ", raw_ratings.shape)
+
         movie_idx_to_id = self.get_idx_to_id(movie_id_to_idx)
         
-        top_user_idxs = np.argsort(np.sum(raw_ratings, axis = 1))[-top_k_users:]
-        top_item_idxs = np.argsort(np.sum(raw_ratings, axis = 0))[-top_k_items:]
-        ratings_filtered = raw_ratings[top_user_idxs]
-        ratings_filtered = ratings_filtered[:, top_item_idxs]
-        self.movie_idx_to_id = {i : movie_idx_to_id[top_item_idxs[i]] for i in range(top_k_items)}
+        users_to_keep_idx = []
+        for i in range(len(raw_ratings)):
+            if np.sum(raw_ratings[i, :] > 0) >= min_ratings:
+                users_to_keep_idx.append(i)
+        raw_ratings = raw_ratings[users_to_keep_idx]
+
+        items_to_keep_idx = []
+        for j in range(raw_ratings.shape[1]):
+            if np.sum(raw_ratings[:, j] > 0) >= min_users:
+                items_to_keep_idx.append(j)
+
+        ratings_filtered = raw_ratings[:, items_to_keep_idx]
+        self.movie_idx_to_id = {i : movie_idx_to_id[items_to_keep_idx[i]] for i in range(len(items_to_keep_idx))}
         
         if binary:
-            ratings_classified = np.zeros((top_k_users, top_k_items))
-            ratings_classified[ratings_filtered > 0] = -1
-            ratings_classified[ratings_filtered >= 3] = 1
+            ratings_classified = np.zeros(ratings_filtered.shape)
+            # ratings_classified[ratings_filtered > 0] = -1
+            ratings_classified[ratings_filtered > 0] = 1
             self.ratings = ratings_classified
         else:
             self.ratings = ratings_filtered
+
+        print("Shape after filtering: ", self.ratings.shape)
 
     def get_X(self):
         return self.ratings
