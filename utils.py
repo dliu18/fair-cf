@@ -1,6 +1,8 @@
 import numpy as np
 
 from scipy.sparse.linalg import eigsh
+from scipy.stats import pearsonr
+
 import matplotlib.pyplot as plt
 
 import cvxpy as cp
@@ -35,11 +37,13 @@ def split_data(R, val_ratio = 0.1, test_ratio = 0.2, seed = 1024):
         assert num_train + num_val + num_test == num_positives
 
         rng.shuffle(pos_item_idxs)
-        R_train[u_idx, pos_item_idxs[:num_train]] = 1.0
+        R_train[u_idx, pos_item_idxs[:num_train]] = R[u_idx, pos_item_idxs[:num_train]]
         if num_val > 0:
-            R_val[u_idx, pos_item_idxs[num_train:num_train + num_val]] = 1.0
+            R_val[u_idx, pos_item_idxs[num_train:num_train + num_val]]\
+                =R[u_idx, pos_item_idxs[num_train:num_train + num_val]]
         if num_test > 0:
-            R_test[u_idx, pos_item_idxs[-num_test:]] = 1.0
+            R_test[u_idx, pos_item_idxs[-num_test:]]\
+                = R[u_idx, pos_item_idxs[-num_test:]] 
 
     R_composite = R_train + R_val + R_test
     assert np.all(np.sum(R_composite, axis = 0) == np.sum(R, axis = 0))
@@ -73,21 +77,38 @@ def get_popularity_splits(R):
 #### evaluation metrics
 def get_item_preference_auc_roc(yhat, R_train, R_test, low_cols, med_cols, high_cols):
 
-    def _auc_for_group(yhat, R_train, R_test, cols):
+    def _aucs(yhat, R_train, R_test):
         aucs = []
-        for j in cols:
+        mask = []
+        all_pop = np.sum(R_train, axis=0)
+        for j in range(R_test.shape[1]):
             true_labels = R_test[:, j][R_train[:, j] == 0]
             pred_labels = yhat[:, j][R_train[:, j] == 0]
             if np.sum(true_labels) == 0:
-                continue
-            aucs.append(roc_auc_score(true_labels, pred_labels))
-        return np.mean(aucs), np.std(aucs)
+                aucs.append(0)
+                mask.append(0)
+            else:
+                aucs.append(roc_auc_score(true_labels > 0, pred_labels))
+                mask.append(1)
+        return np.array(aucs), np.array(mask)
 
-    high_auc_avg, high_auc_std = _auc_for_group(yhat, R_train, R_test, high_cols)
-    med_auc_avg, med_auc_std = _auc_for_group(yhat, R_train, R_test, med_cols)
-    low_auc_avg, low_auc_std = _auc_for_group(yhat, R_train, R_test, low_cols)
+    # TODO: clean up this logic
+    aucs, mask = _aucs(yhat, R_train, R_test)
+    high_auc_avg, high_auc_std = np.mean(aucs[high_cols][mask[high_cols]]), np.std(aucs[high_cols][mask[high_cols]])
+    med_auc_avg, med_auc_std = np.mean(aucs[med_cols][mask[med_cols]]), np.std(aucs[med_cols][mask[med_cols]])
+    low_auc_avg, low_auc_std = np.mean(aucs[low_cols][mask[low_cols]]), np.std(aucs[low_cols][mask[low_cols]])
 
-    return (high_auc_avg, high_auc_std), (med_auc_avg, med_auc_std), (low_auc_avg, low_auc_std)
+    corr = pearsonr(np.sum(R_train, axis=0)[mask], aucs[mask])[0]
+    return (high_auc_avg, high_auc_std), (med_auc_avg, med_auc_std), (low_auc_avg, low_auc_std), corr
+
+def get_specialization(model, r, low_cols, med_cols, high_cols):
+    specs = model.get_specialization(r)
+    pops = np.sum(model.get_R(), axis=0)
+
+    return (specs[high_cols].mean(), specs[high_cols].std()),\
+        (specs[med_cols].mean(), specs[med_cols].std()),\
+        (specs[low_cols].mean(), specs[low_cols].std()),\
+        pearsonr(pops, specs)[0]
 
 def get_prediction_matrix(yhat, R_train, R_test):
     """

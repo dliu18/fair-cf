@@ -137,6 +137,36 @@ class lastfm:
         print("Shape after filtering: ", self.P.shape)
         return self.P
         
+    def kdd_filter(self, min_users=50, min_ratings=20):
+        print("Shape before filtering: ", self.P.shape)
+        artists_to_keep_idx = []
+        artists_to_keep_ids = []
+        for j in range(self.P.shape[1]):
+            if np.sum(self.P[:, j] > 0) > min_users:
+                artists_to_keep_idx.append(j)
+                artists_to_keep_ids.append(self.artist_idx_to_id[j])
+        self.P = self.P[:, artists_to_keep_idx]
+        self.artists_to_keep_idx = np.array(artists_to_keep_idx)
+        self.artists_to_keep_ids = np.array(artists_to_keep_ids)
+
+        users_to_keep_idx = []
+        users_to_keep_id = []
+        for i in range(len(self.P)):
+            if np.sum(self.P[i, :] > 0) > min_ratings:
+                users_to_keep_idx.append(i)
+                users_to_keep_id.append(self.user_idx_to_id[i])
+        self.P = self.P[users_to_keep_idx, :]
+        self.users_to_keep_idx = np.array(users_to_keep_idx)
+        self.users_to_keep_id = np.array(users_to_keep_id)
+
+        users_with_interactions = np.sum(self.P, axis=1) > 0
+        self.P = self.P[users_with_interactions]
+        self.users_to_keep_idx = self.users_to_keep_idx[users_with_interactions]
+        self.users_to_keep_id = self.users_to_keep_id[users_with_interactions]
+
+        print("Shape after filtering: ", self.P.shape)
+        return self.P
+
     def print_tags(self):
         for tag_id in self.tag_to_artist:
             print("{}: {}".format(self.tag_id_to_name[tag_id],
