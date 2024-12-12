@@ -60,9 +60,10 @@ def _specialization(dataset_name, R_train, R_val):
 		ax.grid()
 
 	ax_agg.set_xscale("log")
+	ax_agg.set_yscale("log")
 	ax_agg.set_xlabel("Rank")
-	ax_agg.set_ylabel("Specialization Coefficient")
-	ax_agg.set_title("Specialization Correlatation Coefficient")
+	ax_agg.set_ylabel("Specialization Covariance")
+	ax_agg.set_title("Specialization Covariance")
 	ax_agg.legend()
 	ax_agg.grid()
 
@@ -189,9 +190,9 @@ def _performance_by_popularity(dataset_name, R_train, R_val, R_test, step_size=1
 
 	file_prefix = "performance"
 	if not out_sample:
-		file_prefix += "_out"
-	else:
 		file_prefix += "_in"
+	else:
+		file_prefix += "_out"
 	fig.savefig("figs/%s_%s.pdf" % (file_prefix, dataset_name), bbox_width = "tight")
 	fig_agg.savefig("figs/%s_agg_%s.pdf" % (file_prefix, dataset_name), bbox_width = "tight")
 
@@ -266,7 +267,7 @@ if __name__ == "__main__":
 	user_scores = [np.mean(item_pop[R_train_val[i] > 0]) for i in range(len(R_train))]
 	print([np.percentile(user_scores, percent) for percent in np.arange(0, 100, 10)])
 
-	# _specialization(dataset_name, R_train, R_val)
-	# _performance_by_popularity(dataset_name, R_train, R_val, R_test > 0, out_sample=False)
+	_specialization(dataset_name, R_train, R_val)
+	_performance_by_popularity(dataset_name, R_train, R_val, R_test > 0, out_sample=False)
 	_performance_by_popularity(dataset_name, R_train, R_val, R_test > 0)
 	# _aggregate_performance(dataset_name, R_train, R_val, R_test > 0)

@@ -98,17 +98,26 @@ def get_item_preference_auc_roc(yhat, R_train, R_test, low_cols, med_cols, high_
     med_auc_avg, med_auc_std = np.mean(aucs[med_cols][mask[med_cols]]), np.std(aucs[med_cols][mask[med_cols]])
     low_auc_avg, low_auc_std = np.mean(aucs[low_cols][mask[low_cols]]), np.std(aucs[low_cols][mask[low_cols]])
 
-    corr = pearsonr(np.sum(R_train, axis=0)[mask], aucs[mask])[0]
-    return (high_auc_avg, high_auc_std), (med_auc_avg, med_auc_std), (low_auc_avg, low_auc_std), corr
+    pops = np.sum(R_train, axis=0)[mask]
+    pops /= np.max(pops)
+
+    aucs_filtered = aucs[mask]
+    cov = np.dot(pops - np.mean(pops), aucs_filtered - np.mean(aucs_filtered))
+    # cov = np.dot(pops, aucs_filtered)
+    corr = pearsonr(pops/np.max(pops), aucs[mask])[0]
+
+    return (high_auc_avg, high_auc_std), (med_auc_avg, med_auc_std), (low_auc_avg, low_auc_std), cov
 
 def get_specialization(model, r, low_cols, med_cols, high_cols):
     specs = model.get_specialization(r)
     pops = np.sum(model.get_R(), axis=0)
+    pops /= np.max(pops)
 
     return (specs[high_cols].mean(), specs[high_cols].std()),\
         (specs[med_cols].mean(), specs[med_cols].std()),\
         (specs[low_cols].mean(), specs[low_cols].std()),\
-        pearsonr(pops, specs)[0]
+        np.dot(pops - np.mean(pops), specs - np.mean(specs))
+        # pearsonr(pops / np.max(pops), specs / np.max(specs))[0]
 
 def get_prediction_matrix(yhat, R_train, R_test):
     """
