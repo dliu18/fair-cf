@@ -51,6 +51,7 @@ class PCA(BaseModel):
 	def get_specialization(self, d):
 		V = self.Vh[:d].T
 
+		# V = np.linalg.inv(np.diag(np.linalg.norm(V, axis=1))) @ V
 		item_sim = np.exp(V @ V.T)
 		item_sim = item_sim @ np.linalg.inv(np.diag(np.sum(item_sim, axis=0)))
 		return np.diag(item_sim)
@@ -66,38 +67,32 @@ class ItemWeightedPCA(BaseModel):
 		super().__init__(R)
 		self.name = dataset_name
 
-	def save_projection_matrix(self, P, d):
+	def save_projection_matrix(self, P, d, gamma, file_suffix=""):
 		pred_mtxs_dict = {}
 		try: 
-			with open("pickles/%s.pickle" % self.name, "rb") as pickleFile:
+			with open("pickles/%s%s.pickle" % (self.name, file_suffix), "rb") as pickleFile:
 				pred_mtxs_dict = pickle.load(pickleFile)
 		except:
 			pass
 
-		pred_mtxs_dict[d] = P
-		with open("pickles/%s.pickle" % self.name, "wb") as pickleFile:
+		if d not in pred_mtxs_dict:
+			pred_mtxs_dict[d] = {}
+		pred_mtxs_dict[d][gamma] = P
+		with open("pickles/%s%s.pickle" % (self.name, file_suffix), "wb") as pickleFile:
 			pickle.dump(pred_mtxs_dict, pickleFile)	
 
-	def _get_P(self, R, d, recompute=True, save=False, accuracy_bound=0, cosine=False, max_iters=-1, verbose=False):
-		'''
-			Setting cosine to True modifies the objective to approximate the cosine similarity between the predicted and 
-			actual values.
-		'''
+	def _get_P(self, R, d, gamma=-1, recompute=True, save=False, max_iters=-1, verbose=False, file_suffix="_with_gamma"):
 		if not recompute:
-			with open("pickles/%s.pickle" % self.name, "rb") as pickleFile:
+			with open("pickles/%s%s.pickle" % (self.name, file_suffix), "rb") as pickleFile:
 				pred_mtxs_dict = pickle.load(pickleFile)
-				P = pred_mtxs_dict[d]
+				P = pred_mtxs_dict[d][gamma]
 				return P
 
 		# save a placeholder to confirm that the saving mechanism works
 		if save:
-			self.save_projection_matrix(np.zeros((self.m, self.m)), d)
+			self.save_projection_matrix(np.zeros((self.m, self.m)), d, gamma, file_suffix)
 
 		proj_mtx = cp.Variable((self.m, self.m), PSD=True) #eigenval of proj_mtx are >= 0
-		
-		cov_mtx = R.T @ R
-		w, _ = eigsh(cov_mtx, which = "LM", k = d)
-		vanilla_obj_value = np.sum(w)
 		
 		constraints = [
 			np.eye(self.m) - proj_mtx >> 0, #eigenvalues of proj_mtx are <= 1
@@ -105,19 +100,13 @@ class ItemWeightedPCA(BaseModel):
 			# cp.trace(cov_mtx @ proj_mtx) >= accuracy_bound * vanilla_obj_value
 		]
 		
-		weight_mtx = np.zeros((self.n, self.m))
-		for j in range(self.m):
-			norm = np.linalg.norm(R[:, j])
-			if cosine: # if R is binary, "cosine" does not make a difference
-				norm = np.linalg.norm(R[:, j] != 0)
-			for i in range(self.n):
-				if R[i, j] > 0:
-					weight_mtx[i, j] = 1 / norm
-				elif R[i, j] < 0:
-					weight_mtx[i, j] = -1 / norm
-	#             if cosine:
-	#                 weight_mtx[i, j] *= abs(X[i, j])
-		prob = cp.Problem(cp.Minimize(-cp.trace(weight_mtx.T @ (R @ proj_mtx))),
+		norms = np.linalg.norm(R, axis=0)
+		print("Minimum norm: {}".format(np.min(norms)))
+		weights = norms**gamma
+		weight_mtx = np.diag(weights)
+
+		coefs = weight_mtx.T @ R.T @ R
+		prob = cp.Problem(cp.Minimize(-cp.trace(coefs @ proj_mtx)),
 						  constraints)
 		if max_iters > 0:
 			prob.solve(solver=cp.SCS, 
@@ -141,34 +130,36 @@ class ItemWeightedPCA(BaseModel):
 		
 		proj = proj_mtx.value
 		if save:
-			self.save_projection_matrix(proj, d)
+			self.save_projection_matrix(proj, d, gamma, file_suffix)
 		return proj
 
-	def predict_ratings(self, d, max_iters=-1, recompute=False, save=False, use_diagonal=True):
-		P = self._get_P(self.R, d,
+	def predict_ratings(self, d, gamma=-1, max_iters=-1, recompute=False, save=False, use_diagonal=True, file_suffix="_with_gamma"):
+		P = self._get_P(self.R, d, gamma,
 			recompute=recompute,
 			save=save, 
-			max_iters=max_iters, 
-			cosine=True, 
-			verbose=True)
+			max_iters=max_iters,
+			verbose=True,
+			file_suffix=file_suffix)
 
-		actual_rank = np.sum(np.linalg.eigvals(P) > 0.5)
+		actual_rank = np.sum(np.linalg.eigvals(P) > 0.1)
 		if abs(actual_rank - d) > 0:
 			print("Expected rank: %i Actual rank: %i" % (d, actual_rank))
 
 		## enforce the rank constraint
-		# w, v = eigsh(P, k=d, which="LA")
+		V, _, _ = svd(P)
+		V = V[:, :d]
+		P = V @ V.T
 		# P = v @ np.diag(w) @ v.T
-		
-		if not use_diagonal:
-			P -= np.diag(np.diag(P))
 
 		return self.R @ P
 
-	def get_specialization(self, d):
-		P = self._get_P(self.R, d, recompute=False, save=False, cosine=True)
-
-		item_sim = np.exp(P)
+	def get_specialization(self, d, gamma=-1, file_suffix="_with_gamma"):
+		P = self._get_P(self.R, d, gamma, recompute=False, save=False, file_suffix=file_suffix)
+		V, _, _ = svd(P)
+		V = V[:, :d]
+		
+		# V = np.linalg.inv(np.diag(np.linalg.norm(V, axis=1))) @ V
+		item_sim = np.exp(V @ V.T)
 		item_sim = item_sim @ np.linalg.inv(np.diag(np.sum(item_sim, axis=0)))
 		return np.diag(item_sim)
 
@@ -192,6 +183,7 @@ class LightGCN(BaseModel):
 			V = predictions[d]["item embeddings"].cpu().detach().numpy()
 		assert V.shape == (self.m, d)
 
+		# V = np.linalg.inv(np.diag(np.linalg.norm(V, axis=1))) @ V
 		item_sim = np.exp(V @ V.T)
 		item_sim = item_sim @ np.linalg.inv(np.diag(np.sum(item_sim, axis=0)))
 		return np.diag(item_sim)
@@ -220,6 +212,7 @@ class MF(BaseModel):
 		_, V = self.saved_results[d]
 		assert V.shape == (self.m, d)
 
+		# V = np.linalg.inv(np.diag(np.linalg.norm(V, axis=1))) @ V
 		item_sim = np.exp(V @ V.T)
 		item_sim = item_sim @ np.linalg.inv(np.diag(np.sum(item_sim, axis=0)))
 		return np.diag(item_sim)
@@ -261,18 +254,22 @@ if __name__ == "__main__":
 		val_ratio = 0.1, 
 		test_ratio = 0.2)
 
-	print("Minimum number of users: %i" % np.min(np.sum(R_train + R_val, axis=0)))
+	print("Minimum number of users: %f" % np.min(np.sum(R_train + R_val, axis=0)))
 	model = ItemWeightedPCA(R_train + R_val, sys.argv[1])
 
-	# taskId = int(os.getenv('SLURM_ARRAY_TASK_ID'))
-	# d = 2**taskId
+	taskId = int(os.getenv('SLURM_ARRAY_TASK_ID'))
+	# gammas = [-3, -2.5, -2, -1.5, -1, -0.5, 0, 0.5, 1]
+	# d = 32
+	gamma = -1.5
+	# gamma = gammas[taskId]
+
+	d = 2**taskId
 	# print("d = %i" % d)
 
-	ds = [2**i for i in range(9, 11)]
-	for d in ds:
-	
-	# yhat = model.predict_ratings(d = d)	
-		yhat = model.predict_ratings(d = d, recompute=True, save=True)
+	# ds = [2**i for i in range(1, 11)]
+	# for d in ds:
+	# d = 2
+	yhat = model.predict_ratings(d = d, gamma=gamma, recompute=True, save=True, file_suffix="_with_gamma")
 
 	# predict_partial = partial(model.predict_ratings, 
 	# 	max_iters=200,
