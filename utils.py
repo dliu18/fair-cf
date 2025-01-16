@@ -76,6 +76,17 @@ def get_popularity_splits(R):
     
     return sorted_item_idxs[:medium_start], sorted_item_idxs[medium_start:low_start], sorted_item_idxs[low_start:]
 
+def get_ds(R):
+    """
+    For the FAccT submission returns the set of ds that are evaluated.
+    """
+    small_d = np.array([1, 2, 4, 8])
+    medium_d = np.arange(10, 100, 10)
+    high_d = np.arange(100, R.shape[1], 150)
+    last_d = np.array([R.shape[1]])
+    ds = np.concatenate((small_d, medium_d, high_d, last_d))
+    return ds
+
 #### evaluation metrics
 def get_inverse_cdf(x, bins=100):
     '''
@@ -117,9 +128,16 @@ def get_item_performance(yhat, R_train, R_test, low_cols, med_cols, high_cols, p
         pred_data = pred_data.sum(1)
         return pred_data, np.array([True] * len(pred_data))
 
-    # metrics, mask = _aucs(yhat, R_train, R_test)
-    metrics, mask = _mrrs(yhat, R_train, R_test, k=50)
+    def _precisions(yhat, R_train, R_test, k=20):
+        pred_labels = get_prediction_matrix(yhat.T, R_train.T, R_test.T > 0)
+        pred_data = pred_labels[:, :k]
+        pred_data = (1.0 * pred_data.sum(1)) / k
+        return pred_data, np.array([True] * len(pred_data))
 
+    # metrics, mask = _aucs(yhat, R_train, R_test)
+    # metrics, mask = _mrrs(yhat, R_train, R_test, k=50)
+    metrics, mask = _precisions(yhat, R_train, R_test > 0, k=10)
+    
     high_avg, high_std = np.mean(metrics[high_cols][mask[high_cols]]), np.std(metrics[high_cols][mask[high_cols]])
     med_avg, med_std = np.mean(metrics[med_cols][mask[med_cols]]), np.std(metrics[med_cols][mask[med_cols]])
     low_avg, low_std = np.mean(metrics[low_cols][mask[low_cols]]), np.std(metrics[low_cols][mask[low_cols]])
@@ -190,6 +208,7 @@ def get_prediction_matrix(yhat, R_train, R_test):
     Return a prediction ratings matrix where for each user (row), the ground truth labels are sorted based on the prediction scores
     in yhat. The items corresponding to positives in the training set are excluded.
     """
+    yhat = yhat.copy()
     yhat[R_train > 0] = -np.inf
     sorted_pred = np.zeros(yhat.shape)
     for i in range(len(yhat)):

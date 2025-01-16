@@ -8,8 +8,7 @@ from tqdm import tqdm
 from loaders import lastfm, movielens
 
 colors = ['#1b9e77','#d95f02','#7570b3','#e7298a','#66a61e']
-rs = [2**i for i in range(2, 10)]
-
+# rs = [2**i for i in range(2, 11)]
 assert len(sys.argv) == 3
 global_gamma = float(sys.argv[2])
 
@@ -21,10 +20,10 @@ def _specialization(dataset_name, R_train, R_val):
 		("PCA", models.PCA(R_train + R_val)),
 		("Normalized PCA", models.NormalizedPCA(R_train + R_val)),
 		("Item-Weighted PCA", models.ItemWeightedPCA(R_train + R_val, dataset_name)),
-		("Weighted MF", models.MF(R_train + R_val, dataset_name)),
+		# ("Weighted MF", models.MF(R_train + R_val, dataset_name)),
 	]
-	if "lastfm" not in dataset_name:
-		model_list.append(("LightGCN", models.LightGCN(R_train + R_val, dataset_name)))
+	# if "lastfm" not in dataset_name:
+	# 	model_list.append(("LightGCN", models.LightGCN(R_train + R_val, dataset_name)))
 	pop_groups = ["High", "Medium", "Low"]
 	high_cols, med_cols, low_cols = utils.get_popularity_splits(R_train + R_val)
 	fig, axs = plt.subplots(ncols = len(pop_groups), figsize = (7 * len(pop_groups), 7))
@@ -75,8 +74,8 @@ def _specialization(dataset_name, R_train, R_val):
 	ax_agg.legend()
 	ax_agg.grid()
 
-	fig.savefig("figs/specialization_by_pop_%s.pdf" % dataset_name, bbox_width = "tight")
-	fig_agg.savefig("figs/specialization_%s.pdf" % dataset_name, bbox_width = "tight")
+	fig.savefig("figs/facct_submission/specialization_by_pop_%s.pdf" % dataset_name, bbox_width = "tight")
+	# fig_agg.savefig("figs/facct_submission/specialization_%s.pdf" % dataset_name, bbox_width = "tight")
 
 def _aggregate_performance(dataset_name, R_train, R_val, R_test, k=20, step_size=10):
 	'''
@@ -90,7 +89,7 @@ def _aggregate_performance(dataset_name, R_train, R_val, R_test, k=20, step_size
 	]
 	if "lastfm" not in dataset_name:
 		model_list.append(("LightGCN", models.LightGCN(R_train + R_val, dataset_name)))
-	metrics = ["Recall", "Precision", "NDCG", "MRR", "Popularity-Opportunity Bias"]
+	metrics = ["Recall", "Precision", "NDCG", "MRR"]
 	# max_r = min(min(R_train.shape), 500)
 	# rs = np.arange(1, max_r + 1, step_size)
 	fig_agg, axs = plt.subplots(ncols = len(metrics), figsize = (7 * len(metrics), 7))
@@ -121,7 +120,7 @@ def _aggregate_performance(dataset_name, R_train, R_val, R_test, k=20, step_size
 		axs[1].plot(rs, precisions, label=model_name, color=colors[idx], linewidth=2)
 		axs[2].plot(rs, mrrs, label=model_name, color=colors[idx], linewidth=2)
 		axs[3].plot(rs, ndcgs, label=model_name, color=colors[idx], linewidth=2)
-		axs[4].plot(rs, unfairness, label=model_name, color=colors[idx], linewidth=2)
+		# axs[4].plot(rs, unfairness, label=model_name, color=colors[idx], linewidth=2)
 
 	for idx, ax in enumerate(axs):
 		ax.set_xscale("log")
@@ -134,35 +133,35 @@ def _aggregate_performance(dataset_name, R_train, R_val, R_test, k=20, step_size
 	axs_tradeoff.set_ylabel("Popularity-Opportunity Bias")
 	axs_tradeoff.legend()
 	axs_tradeoff.grid()
-	fig_agg.savefig("figs/aggregate_performance_%s.pdf" % dataset_name, bbox_width = "tight")
-	fig_tradeoff.savefig("figs/tradeoff_%s.pdf" % dataset_name, bbox_width="tight")
+	fig_agg.savefig("figs/facct_submission/aggregate_performance_%s.pdf" % dataset_name, bbox_width = "tight")
+	# fig_tradeoff.savefig("figs/facct_submission/tradeoff_%s.pdf" % dataset_name, bbox_width="tight")
 
 def _performance_by_popularity(dataset_name, R_train, R_val, R_test, step_size=10, out_sample=True):
 	model_list = [
 		("PCA", models.PCA(R_train + R_val)),
 		("Normalized PCA", models.NormalizedPCA(R_train + R_val)),
 		("Item-Weighted PCA", models.ItemWeightedPCA(R_train + R_val, dataset_name)),
-		("Weighted MF", models.MF(R_train + R_val, dataset_name)),
+		# ("Weighted MF", models.MF(R_train + R_val, dataset_name)),
 	]
-	if "lastfm" not in dataset_name:
-		model_list.append(("LightGCN", models.LightGCN(R_train + R_val, dataset_name)))
+	# if "lastfm" not in dataset_name:
+	# 	model_list.append(("LightGCN", models.LightGCN(R_train + R_val, dataset_name)))
 
 	# max_r = min(min(R_train.shape), 300)
 	# rs = np.arange(1, max_r + 1, step_size)
-	pop_groups = ["High", "Medium", "Low"]
-	fig, axs = plt.subplots(ncols = len(pop_groups), figsize = (7 * len(pop_groups), 7)) # corresponding to low, med, high
+	pop_groups = ["Overall", "High", "Medium", "Low"]
+	fig, axs = plt.subplots(ncols = len(pop_groups), figsize = (7 * len(pop_groups), 7), sharey=True) # corresponding to overall, low, med, high
 	fig_agg, ax_agg = plt.subplots(figsize = (7, 7)) # corresponding to low, med, high
 	high_cols, med_cols, low_cols = utils.get_popularity_splits(R_train + R_val)
 	pops = utils.get_inverse_cdf(np.sum(R_train + R_val, axis = 0))
 
 	for idx, model_info in enumerate(model_list):
 		model_name, model_obj = model_info
-		high_avgs, med_avgs, low_avgs = [], [], []
+		high_avgs, med_avgs, low_avgs, overall_avgs = [], [], [], []
 		high_std, med_std, low_std = [], [], []
 		corrs = []
 		for r in tqdm(rs):
 			#calculate predicted ratings y-hat
-			yhat = model_obj.predict_ratings(r)
+			yhat = model_obj.predict_ratings(r, use_diagonal=out_sample)
 			high, med, low, corr = utils.get_item_performance(yhat, 
 				R_train + R_val, R_test, 
 				low_cols, med_cols, high_cols,
@@ -182,21 +181,25 @@ def _performance_by_popularity(dataset_name, R_train, R_val, R_test, step_size=1
 			low_avgs.append(low[0])
 			low_std.append(low[1])
 
+			overall_total = len(high_cols) * high[0] + len(med_cols) * med[0] + len(low_cols) * low[0]
+			overall_avgs.append(overall_total / R_train.shape[1])
+
 			corrs.append(corr)
-		axs[0].plot(rs, high_avgs, label=model_name, color=colors[idx], linewidth=2)
-		# axs[0].fill_between(rs, 
+		axs[0].plot(rs, overall_avgs, label=model_name, color=colors[idx], linewidth=2)
+		axs[1].plot(rs, high_avgs, label=model_name, color=colors[idx], linewidth=2)
+		# axs[1].fill_between(rs, 
 		# 	np.array(high_avgs) - 0.5 * np.array(high_std), 
 		# 	np.array(high_avgs) + 0.5 * np.array(high_std),
 		# 	alpha=0.2, color=colors[idx])
 
-		axs[1].plot(rs, med_avgs, label=model_name, color=colors[idx], linewidth=2)
-		# axs[1].fill_between(rs, 
+		axs[2].plot(rs, med_avgs, label=model_name, color=colors[idx], linewidth=2)
+		# axs[2].fill_between(rs, 
 		# 	np.array(med_avgs) - 0.5 * np.array(med_std), 
 		# 	np.array(med_avgs) + 0.5 * np.array(med_std),
 		# 	alpha=0.2, color=colors[idx])
 
-		axs[2].plot(rs, low_avgs, label=model_name, color=colors[idx], linewidth=2)
-		# axs[2].fill_between(rs, 
+		axs[3].plot(rs, low_avgs, label=model_name, color=colors[idx], linewidth=2)
+		# axs[3].fill_between(rs, 
 		# 	np.array(low_avgs) - 0.5 * np.array(low_std),
 		# 	np.array(low_avgs) + 0.5 * np.array(low_std),
 		# 	alpha=0.2, color=colors[idx])
@@ -205,7 +208,7 @@ def _performance_by_popularity(dataset_name, R_train, R_val, R_test, step_size=1
 	for idx, ax in enumerate(axs):
 		ax.set_xscale("log")
 		ax.set_xlabel("Rank")
-		ax.set_ylabel("Item MRR")
+		ax.set_ylabel("Item-Level Precision@k")
 		ax.set_title(pop_groups[idx])
 		ax.legend()
 		ax.grid()
@@ -221,8 +224,8 @@ def _performance_by_popularity(dataset_name, R_train, R_val, R_test, step_size=1
 		file_prefix += "_in"
 	else:
 		file_prefix += "_out"
-	fig.savefig("figs/%s_%s.pdf" % (file_prefix, dataset_name), bbox_width = "tight")
-	fig_agg.savefig("figs/%s_unfairness_%s.pdf" % (file_prefix, dataset_name), bbox_width = "tight")
+	fig.savefig("figs/facct_submission/%s_%s.pdf" % (file_prefix, dataset_name), bbox_width = "tight")
+	# fig_agg.savefig("figs/facct_submission/%s_unfairness_%s.pdf" % (file_prefix, dataset_name), bbox_width = "tight")
 
 	return 
 
@@ -290,7 +293,7 @@ def _performance_by_gamma(dataset_name, R_train, R_val, R_test, k=10, step_size=
 		ax.set_title(metrics[idx])
 		ax.grid()
 		ax.legend()
-	fig_agg.savefig("figs/performance_by_gamma_%s.pdf" % dataset_name, bbox_width = "tight")
+	fig_agg.savefig("figs/facct_submission/performance_by_gamma_%s.pdf" % dataset_name, bbox_width = "tight")
 
 	return
 
@@ -325,6 +328,7 @@ if __name__ == "__main__":
 	else:
 		raise NotImplementedError("The %s dataset is not available" % dataset_name)
 
+	rs = utils.get_ds(R)
 	R_train, R_val, R_test = utils.split_data(R, 
 		val_ratio = 0.1, 
 		test_ratio = 0.2)
@@ -332,10 +336,10 @@ if __name__ == "__main__":
 		Number of training interactions: %i \n\
 		Number of validation interactions: %i \n\
 		Number of test interactions: %i\n\
-		Number of items with no train interactions: %i\n\
+		Number of items with <10 train interactions: %i\n\
 		Number of users with no test interactions: %i"\
 		% (np.sum(R_train>0), np.sum(R_val>0), np.sum(R_test>0),
-			np.sum(np.sum(R_train + R_val + R_test, axis=0) == 0),
+			np.sum(np.sum((R_train + R_val) > 0, axis=0) < 10),
 			np.sum(np.sum(R_test, axis=1) == 0)))
 
 	##### Preliminary Statistics
@@ -362,8 +366,8 @@ if __name__ == "__main__":
 	# user_scores = [np.mean(item_pop[R_train_val[i] > 0]) for i in range(len(R_train))]
 	# print([np.percentile(user_scores, percent) for percent in np.arange(0, 100, 10)])
 
-	_specialization(dataset_name, R_train, R_val)
-	# _performance_by_popularity(dataset_name, R_train, R_val, R_test > 0, out_sample=False)
+	# _specialization(dataset_name, R_train, R_val)
+	_performance_by_popularity(dataset_name, R_train, R_val, R_test > 0, out_sample=False)
 	# _performance_by_popularity(dataset_name, R_train, R_val, R_test > 0)
-	_performance_by_gamma(dataset_name, R_train, R_val, R_test > 0)
-	_aggregate_performance(dataset_name, R_train, R_val, R_test > 0)
+	# _performance_by_gamma(dataset_name, R_train, R_val, R_test > 0)
+	# _aggregate_performance(dataset_name, R_train, R_val, R_test > 0)

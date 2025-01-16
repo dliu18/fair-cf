@@ -50,10 +50,10 @@ class PCA(BaseModel):
 
 	def get_specialization(self, d):
 		V = self.Vh[:d].T
-
+		item_sim = V @ V.T
 		# V = np.linalg.inv(np.diag(np.linalg.norm(V, axis=1))) @ V
-		item_sim = np.exp(V @ V.T)
-		item_sim = item_sim @ np.linalg.inv(np.diag(np.sum(item_sim, axis=0)))
+		# item_sim = np.exp(V @ V.T)
+		# item_sim = item_sim @ np.linalg.inv(np.diag(np.sum(item_sim, axis=0)))
 		return np.diag(item_sim)
 
 class NormalizedPCA(PCA):
@@ -81,7 +81,7 @@ class ItemWeightedPCA(BaseModel):
 		with open("pickles/%s%s.pickle" % (self.name, file_suffix), "wb") as pickleFile:
 			pickle.dump(pred_mtxs_dict, pickleFile)	
 
-	def _get_P(self, R, d, gamma=-1, recompute=True, save=False, max_iters=-1, verbose=False, file_suffix="_with_gamma"):
+	def _get_P(self, R, d, gamma=-1, recompute=True, save=False, max_iters=-1, verbose=False, file_suffix="_dense"):
 		if not recompute:
 			with open("pickles/%s%s.pickle" % (self.name, file_suffix), "rb") as pickleFile:
 				pred_mtxs_dict = pickle.load(pickleFile)
@@ -133,7 +133,7 @@ class ItemWeightedPCA(BaseModel):
 			self.save_projection_matrix(proj, d, gamma, file_suffix)
 		return proj
 
-	def predict_ratings(self, d, gamma=-1, max_iters=-1, recompute=False, save=False, use_diagonal=True, file_suffix="_with_gamma"):
+	def predict_ratings(self, d, gamma=-1, max_iters=-1, recompute=False, save=False, use_diagonal=True, file_suffix="_dense"):
 		P = self._get_P(self.R, d, gamma,
 			recompute=recompute,
 			save=save, 
@@ -146,21 +146,25 @@ class ItemWeightedPCA(BaseModel):
 			print("Expected rank: %i Actual rank: %i" % (d, actual_rank))
 
 		## enforce the rank constraint
-		V, _, _ = svd(P)
+		V, _, _ = svd(P) #singular vec sorted in non-increasing order
 		V = V[:, :d]
 		P = V @ V.T
+
+		if not use_diagonal:
+			P -= np.diag(np.diag(P))
+			
 		# P = v @ np.diag(w) @ v.T
 
 		return self.R @ P
 
-	def get_specialization(self, d, gamma=-1, file_suffix="_with_gamma"):
+	def get_specialization(self, d, gamma=-1, file_suffix="_dense"):
 		P = self._get_P(self.R, d, gamma, recompute=False, save=False, file_suffix=file_suffix)
 		V, _, _ = svd(P)
 		V = V[:, :d]
-		
+		item_sim = V @ V.T
 		# V = np.linalg.inv(np.diag(np.linalg.norm(V, axis=1))) @ V
-		item_sim = np.exp(V @ V.T)
-		item_sim = item_sim @ np.linalg.inv(np.diag(np.sum(item_sim, axis=0)))
+		# item_sim = np.exp(V @ V.T)
+		# item_sim = item_sim @ np.linalg.inv(np.diag(np.sum(item_sim, axis=0)))
 		return np.diag(item_sim)
 
 class LightGCN(BaseModel):
@@ -258,18 +262,21 @@ if __name__ == "__main__":
 	model = ItemWeightedPCA(R_train + R_val, sys.argv[1])
 
 	taskId = int(os.getenv('SLURM_ARRAY_TASK_ID'))
+
+	ds = utils.get_ds(R)
+
 	# gammas = [-3, -2.5, -2, -1.5, -1, -0.5, 0, 0.5, 1]
 	# d = 32
-	gamma = -1.5
+	gamma = -1
 	# gamma = gammas[taskId]
 
-	d = 2**taskId
+	d = ds[taskId]
 	# print("d = %i" % d)
 
 	# ds = [2**i for i in range(1, 11)]
 	# for d in ds:
 	# d = 2
-	yhat = model.predict_ratings(d = d, gamma=gamma, recompute=True, save=True, file_suffix="_with_gamma")
+	yhat = model.predict_ratings(d = d, gamma=gamma, recompute=True, save=True, file_suffix="_dense")
 
 	# predict_partial = partial(model.predict_ratings, 
 	# 	max_iters=200,

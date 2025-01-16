@@ -7,6 +7,13 @@ filename = sys.argv[1]
 with open("pickles/%s.pickle" % filename, "rb") as pickleFile:
 	pred_mtxs = pickle.load(pickleFile)
 
+# new_pred_mtxs = {}
+# for d in pred_mtxs:
+# 	new_pred_mtxs[d] = {-1: pred_mtxs[d]}
+
+# with open("pickles/%s_revised.pickle" % filename, "wb") as pickleFile:
+# 	pickle.dump(new_pred_mtxs, pickleFile)
+
 for d in pred_mtxs:
 	for gamma in pred_mtxs[d]:
 		P = pred_mtxs[d][gamma]

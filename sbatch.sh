@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH --partition=short
 #SBATCH --job-name=fair-pca
-#SBATCH --array=1-9%10
+#SBATCH --array=0-21%25
 #SBATCH --ntasks=1
 #SBATCH --output=logs/out_array_%A_%a.out
 #SBATCH --error=logs/err_array_%A_%a.err
@@ -12,4 +12,7 @@ source ~/.bashrc
 mamba activate fair-ranking
 work
 cd fair-cf
-python models.py lastfm-explicit
+python models.py movielens
+
+#LastFM array size = 24
+#movielens array size = 22 
