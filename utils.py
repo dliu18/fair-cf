@@ -103,7 +103,7 @@ def get_inverse_cdf(x, bins=100):
     assert len(output) == len(x)
     return np.array(output)
 
-def get_item_performance(yhat, R_train, R_test, low_cols, med_cols, high_cols, pops):
+def get_item_performance(yhat, R_train, R_test, low_cols, med_cols, high_cols, pops, metric_name):
 
     def _aucs(yhat, R_train, R_test):
         aucs = []
@@ -134,9 +134,14 @@ def get_item_performance(yhat, R_train, R_test, low_cols, med_cols, high_cols, p
         pred_data = (1.0 * pred_data.sum(1)) / k
         return pred_data, np.array([True] * len(pred_data))
 
-    # metrics, mask = _aucs(yhat, R_train, R_test)
-    # metrics, mask = _mrrs(yhat, R_train, R_test, k=50)
-    metrics, mask = _precisions(yhat, R_train, R_test > 0, k=10)
+    assert metric_name in ["AUC", "MRR", "Precision"]
+
+    if metric_name == "AUC":
+        metrics, mask = _aucs(yhat, R_train, R_test)
+    elif metric_name == "MRR":
+        metrics, mask = _mrrs(yhat, R_train, R_test, k=50)
+    elif metric_name == "Precision":
+        metrics, mask = _precisions(yhat, R_train, R_test, k=20)
     
     high_avg, high_std = np.mean(metrics[high_cols][mask[high_cols]]), np.std(metrics[high_cols][mask[high_cols]])
     med_avg, med_std = np.mean(metrics[med_cols][mask[med_cols]]), np.std(metrics[med_cols][mask[med_cols]])
@@ -178,10 +183,13 @@ def get_pop_opp_bias(yhat, R_train, R_test, k):
     
     return gini_coef(pops, recalls)
 
-def get_specialization(model, r, low_cols, med_cols, high_cols, gamma=0):
-    specs = model.get_specialization(r)
-    if gamma != 0:
+def get_specialization(model, r, low_cols, med_cols, high_cols, gamma=0, file_suffix=""):
+    if gamma == 0 and file_suffix == "":
+        specs = model.get_specialization(r)
+    elif gamma != 0 and file_suffix == "":
         specs = model.get_specialization(r, gamma=gamma)
+    elif gamma != 0 and file_suffix != "":
+        specs = model.get_specialization(r, gamma=gamma, file_suffix=file_suffix)
     pops = np.sum(model.get_R(), axis=0)
     # pops = get_inverse_cdf(np.sum(model.get_R(), axis=0))
     # pops /= np.max(pops)

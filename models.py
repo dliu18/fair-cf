@@ -81,7 +81,7 @@ class ItemWeightedPCA(BaseModel):
 		with open("pickles/%s%s.pickle" % (self.name, file_suffix), "wb") as pickleFile:
 			pickle.dump(pred_mtxs_dict, pickleFile)	
 
-	def _get_P(self, R, d, gamma=-1, recompute=True, save=False, max_iters=-1, verbose=False, file_suffix="_dense"):
+	def _get_P(self, R, d, gamma=-1, recompute=True, save=False, max_iters=-1, verbose=False, file_suffix=""):
 		if not recompute:
 			with open("pickles/%s%s.pickle" % (self.name, file_suffix), "rb") as pickleFile:
 				pred_mtxs_dict = pickle.load(pickleFile)
@@ -133,7 +133,7 @@ class ItemWeightedPCA(BaseModel):
 			self.save_projection_matrix(proj, d, gamma, file_suffix)
 		return proj
 
-	def predict_ratings(self, d, gamma=-1, max_iters=-1, recompute=False, save=False, use_diagonal=True, file_suffix="_dense"):
+	def predict_ratings(self, d, gamma=-1, max_iters=-1, recompute=False, save=False, use_diagonal=True, file_suffix=""):
 		P = self._get_P(self.R, d, gamma,
 			recompute=recompute,
 			save=save, 
@@ -157,7 +157,7 @@ class ItemWeightedPCA(BaseModel):
 
 		return self.R @ P
 
-	def get_specialization(self, d, gamma=-1, file_suffix="_dense"):
+	def get_specialization(self, d, gamma=-1, file_suffix=""):
 		P = self._get_P(self.R, d, gamma, recompute=False, save=False, file_suffix=file_suffix)
 		V, _, _ = svd(P)
 		V = V[:, :d]
@@ -237,7 +237,7 @@ if __name__ == "__main__":
 		# setting min_ratings = 10 minimizes the number of users with no test interactions
 		obj.filter(min_users = 10, min_ratings = 10)
 		R = obj.get_P()
-		R = np.linalg.inv(np.diag(np.sum(R, axis=1))) @ R
+		# R = np.linalg.inv(np.diag(np.sum(R, axis=1))) @ R
 	elif sys.argv[1] == "lastfm-small":
 		obj = lastfm.lastfm()
 		# setting min_ratings = 10 minimizes the number of users with no test interactions
@@ -266,6 +266,9 @@ if __name__ == "__main__":
 	ds = utils.get_ds(R)
 
 	# gammas = [-3, -2.5, -2, -1.5, -1, -0.5, 0, 0.5, 1]
+	gammas = np.arange(-2, 0, 0.1)
+	gammas = np.concatenate((gammas, np.array([0])))
+
 	# d = 32
 	gamma = -1
 	# gamma = gammas[taskId]
@@ -276,7 +279,7 @@ if __name__ == "__main__":
 	# ds = [2**i for i in range(1, 11)]
 	# for d in ds:
 	# d = 2
-	yhat = model.predict_ratings(d = d, gamma=gamma, recompute=True, save=True, file_suffix="_dense")
+	yhat = model.predict_ratings(d = d, gamma=gamma, recompute=True, save=True, file_suffix="_unnormalized")
 
 	# predict_partial = partial(model.predict_ratings, 
 	# 	max_iters=200,
