@@ -16,6 +16,7 @@ with open("pickles/%s.pickle" % filename, "rb") as pickleFile:
 
 for d in pred_mtxs:
 	for gamma in pred_mtxs[d]:
+		print(gamma)
 		P = pred_mtxs[d][gamma]
 		actual_rank = np.sum(np.linalg.eigvals(P) > 0.01)
 		ortho_rank = np.sum(np.linalg.eigvals(P) > 0.99)

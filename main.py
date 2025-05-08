@@ -9,6 +9,17 @@ from tqdm import tqdm
 from loaders import lastfm, movielens
 
 colors = ['#1b9e77','#d95f02','#7570b3','#e7298a','#66a61e']
+SMALL_SIZE = 19
+MEDIUM_SIZE = 22
+BIGGER_SIZE = 22
+plt.rc('font', size=SMALL_SIZE, family = "Nimbus Roman")          # controls default text sizes
+plt.rc('axes', titlesize=MEDIUM_SIZE)     # fontsize of the axes title
+plt.rc('axes', labelsize=MEDIUM_SIZE)    # fontsize of the x and y labels
+plt.rc('xtick', labelsize=SMALL_SIZE)    # fontsize of the tick labels
+plt.rc('ytick', labelsize=SMALL_SIZE)    # fontsize of the tick labels
+# plt.rc('legend', fontsize=SMALL_SIZE)    # legend fontsize
+plt.rc('figure', titlesize=BIGGER_SIZE)  # fontsize of the figure title
+
 try:
 	assert len(sys.argv) == 4
 except:
@@ -30,8 +41,8 @@ def _specialization(dataset_name, R_train, R_val, figure_values):
 	# 	model_list.append(("LightGCN", models.LightGCN(R_train + R_val, dataset_name)))
 	pop_groups = ["High", "Medium", "Low"]
 	high_cols, med_cols, low_cols = utils.get_popularity_splits(R_train + R_val)
-	fig, axs = plt.subplots(ncols = len(pop_groups), figsize = (7 * len(pop_groups), 7))
-	fig_agg, ax_agg = plt.subplots(figsize = (7, 7))
+	fig, axs = plt.subplots(ncols = len(pop_groups), figsize = (7 * len(pop_groups), 5.00))
+	fig_agg, ax_agg = plt.subplots(figsize = (7, 5.00))
 
 	for idx, model_info in enumerate(model_list):
 		model_name, model_obj = model_info
@@ -89,26 +100,34 @@ def _specialization(dataset_name, R_train, R_val, figure_values):
 			"rs": plt_rs,
 			"values": low_spec_avg
 			})
+		figure_values.append({
+			"Metric": "Specialization",
+			"Algorithm": model_name,
+			"Popularity": "Overall",
+			"rs": plt_rs,
+			"values": agg_specs
+			})
 
 	for idx, ax in enumerate(axs):
 		ax.set_xscale("log")
 		ax.set_yscale("log")
 		ax.set_xlabel("Rank")
-		ax.set_ylabel("Specialization")
-		ax.set_title("Specialization for %s Popularity" % pop_groups[idx])
+		ax.set_ylabel("Average Diagonal")
+		ax.set_title("Avg. Diagonal for %s Popularity" % pop_groups[idx])
 		ax.legend()
 		ax.grid()
 
 	ax_agg.set_xscale("log")
 	# ax_agg.set_yscale("log")
 	ax_agg.set_xlabel("Rank")
-	ax_agg.set_ylabel("Specialization Bias")
-	ax_agg.set_title("Specialization Bias")
+	ax_agg.set_ylabel("Specialization")
+	ax_agg.set_title("Specialization")
 	ax_agg.legend()
 	ax_agg.grid()
 
-	fig.savefig("figs/facct_submission/specialization_by_pop_%s.pdf" % dataset_name, bbox_width = "tight")
-	# fig_agg.savefig("figs/facct_submission/specialization_%s.pdf" % dataset_name, bbox_width = "tight")
+
+	fig.savefig("figs/facct_submission/specialization_by_pop_%s.pdf" % dataset_name, bbox_inches = "tight")
+	fig_agg.savefig("figs/facct_submission/specialization_%s.pdf" % dataset_name, bbox_inches = "tight")
 
 def _aggregate_performance(dataset_name, R_train, R_val, R_test, figure_values, k=20, step_size=10):
 	'''
@@ -122,11 +141,13 @@ def _aggregate_performance(dataset_name, R_train, R_val, R_test, figure_values, 
 	]
 	# if "lastfm" not in dataset_name:
 	# 	model_list.append(("LightGCN", models.LightGCN(R_train + R_val, dataset_name)))
-	metrics = ["Recall", "Precision", "NDCG", "MRR"]
+	# metrics = ["Recall", "Precision", "NDCG", "MRR"]
+	metrics = ["Recall", "NDCG"]
+
 	# max_r = min(min(R_train.shape), 500)
 	# rs = np.arange(1, max_r + 1, step_size)
-	fig_agg, axs = plt.subplots(ncols = len(metrics), figsize = (7 * len(metrics), 7))
-	fig_tradeoff, axs_tradeoff = plt.subplots(figsize = (7, 7))
+	fig_agg, axs = plt.subplots(ncols = len(metrics), figsize = (7 * len(metrics), 5.00))
+	fig_tradeoff, axs_tradeoff = plt.subplots(figsize = (7, 5.00))
 
 	for idx, model_info in enumerate(model_list):
 		model_name, model_obj = model_info
@@ -156,9 +177,10 @@ def _aggregate_performance(dataset_name, R_train, R_val, R_test, figure_values, 
 				axs_tradeoff.scatter(recalls[-1], unfairness[-1], label=model_name, color=colors[idx])
 
 		axs[0].plot(plt_rs, recalls, label=model_name, color=colors[idx], linewidth=2)
-		axs[1].plot(plt_rs, precisions, label=model_name, color=colors[idx], linewidth=2)
-		axs[2].plot(plt_rs, mrrs, label=model_name, color=colors[idx], linewidth=2)
-		axs[3].plot(plt_rs, ndcgs, label=model_name, color=colors[idx], linewidth=2)
+		axs[1].plot(plt_rs, ndcgs, label=model_name, color=colors[idx], linewidth=2)
+		# axs[1].plot(plt_rs, precisions, label=model_name, color=colors[idx], linewidth=2)
+		# axs[2].plot(plt_rs, mrrs, label=model_name, color=colors[idx], linewidth=2)
+		# axs[3].plot(plt_rs, ndcgs, label=model_name, color=colors[idx], linewidth=2)
 		# axs[4].plot(rs, unfairness, label=model_name, color=colors[idx], linewidth=2)
 
 		figure_values.append({
@@ -168,20 +190,20 @@ def _aggregate_performance(dataset_name, R_train, R_val, R_test, figure_values, 
 			"rs": plt_rs,
 			"values": recalls
 			})
-		figure_values.append({
-			"Metric": "Precision",
-			"Algorithm": model_name,
-			"Popularity": "Overall",
-			"rs": plt_rs,
-			"values": precisions
-			})
-		figure_values.append({
-			"Metric": "MRR",
-			"Algorithm": model_name,
-			"Popularity": "Overall",
-			"rs": plt_rs,
-			"values": mrrs
-			})
+		# figure_values.append({
+		# 	"Metric": "Precision",
+		# 	"Algorithm": model_name,
+		# 	"Popularity": "Overall",
+		# 	"rs": plt_rs,
+		# 	"values": precisions
+		# 	})
+		# figure_values.append({
+		# 	"Metric": "MRR",
+		# 	"Algorithm": model_name,
+		# 	"Popularity": "Overall",
+		# 	"rs": plt_rs,
+		# 	"values": mrrs
+		# 	})
 		figure_values.append({
 			"Metric": "NDCG",
 			"Algorithm": model_name,
@@ -201,8 +223,8 @@ def _aggregate_performance(dataset_name, R_train, R_val, R_test, figure_values, 
 	axs_tradeoff.set_ylabel("Popularity-Opportunity Bias")
 	axs_tradeoff.legend()
 	axs_tradeoff.grid()
-	fig_agg.savefig("figs/facct_submission/aggregate_performance_%s.pdf" % dataset_name, bbox_width = "tight")
-	# fig_tradeoff.savefig("figs/facct_submission/tradeoff_%s.pdf" % dataset_name, bbox_width="tight")
+	fig_agg.savefig("figs/facct_submission/aggregate_performance_%s_small.pdf" % dataset_name, bbox_inches = "tight")
+	# fig_tradeoff.savefig("figs/facct_submission/tradeoff_%s.pdf" % dataset_name, bbox_inches="tight")
 
 def _performance_by_popularity(dataset_name, R_train, R_val, R_test, figure_values, metric_name="Precision", step_size=10, out_sample=True):
 	model_list = [
@@ -216,9 +238,9 @@ def _performance_by_popularity(dataset_name, R_train, R_val, R_test, figure_valu
 
 	# max_r = min(min(R_train.shape), 300)
 	# rs = np.arange(1, max_r + 1, step_size)
-	pop_groups = ["Overall", "High", "Medium", "Low"]
-	fig, axs = plt.subplots(ncols = len(pop_groups), figsize = (7 * len(pop_groups), 7), sharey=True) # corresponding to overall, low, med, high
-	fig_agg, ax_agg = plt.subplots(figsize = (7, 7)) # corresponding to low, med, high
+	pop_groups = ["Overall", "Low", "Medium", "High"]
+	fig, axs = plt.subplots(ncols = 2, figsize = (7 * 2, 5.00), sharey=True) # corresponding to overall, low, med, high
+	fig_agg, ax_agg = plt.subplots(figsize = (7, 5.00)) # corresponding to low, med, high
 	high_cols, med_cols, low_cols = utils.get_popularity_splits(R_train + R_val)
 	pops = utils.get_inverse_cdf(np.sum(R_train + R_val, axis = 0))
 
@@ -264,19 +286,19 @@ def _performance_by_popularity(dataset_name, R_train, R_val, R_test, figure_valu
 			corrs.append(corr)
 			plt_rs.append(r)
 		axs[0].plot(plt_rs, overall_avgs, label=model_name, color=colors[idx], linewidth=2)
-		axs[1].plot(plt_rs, high_avgs, label=model_name, color=colors[idx], linewidth=2)
+		# axs[1].plot(plt_rs, high_avgs, label=model_name, color=colors[idx], linewidth=2)
 		# axs[1].fill_between(rs, 
 		# 	np.array(high_avgs) - 0.5 * np.array(high_std), 
 		# 	np.array(high_avgs) + 0.5 * np.array(high_std),
 		# 	alpha=0.2, color=colors[idx])
 
-		axs[2].plot(plt_rs, med_avgs, label=model_name, color=colors[idx], linewidth=2)
+		# axs[2].plot(plt_rs, med_avgs, label=model_name, color=colors[idx], linewidth=2)
 		# axs[2].fill_between(rs, 
 		# 	np.array(med_avgs) - 0.5 * np.array(med_std), 
 		# 	np.array(med_avgs) + 0.5 * np.array(med_std),
 		# 	alpha=0.2, color=colors[idx])
 
-		axs[3].plot(plt_rs, low_avgs, label=model_name, color=colors[idx], linewidth=2)
+		axs[1].plot(plt_rs, low_avgs, label=model_name, color=colors[idx], linewidth=2)
 		# axs[3].fill_between(rs, 
 		# 	np.array(low_avgs) - 0.5 * np.array(low_std),
 		# 	np.array(low_avgs) + 0.5 * np.array(low_std),
@@ -315,7 +337,7 @@ def _performance_by_popularity(dataset_name, R_train, R_val, R_test, figure_valu
 	for idx, ax in enumerate(axs):
 		ax.set_xscale("log")
 		ax.set_xlabel("Rank")
-		ax.set_ylabel("Item-Level Precision@k")
+		ax.set_ylabel(f"Item-Level {metric_name}")
 		ax.set_title(pop_groups[idx])
 		ax.legend()
 		ax.grid()
@@ -331,20 +353,20 @@ def _performance_by_popularity(dataset_name, R_train, R_val, R_test, figure_valu
 		file_prefix += "_in"
 	else:
 		file_prefix += "_out"
-	fig.savefig("figs/facct_submission/%s_%s_%s.pdf" % (file_prefix, dataset_name, metric_name), bbox_width = "tight")
-	# fig_agg.savefig("figs/facct_submission/%s_unfairness_%s.pdf" % (file_prefix, dataset_name), bbox_width = "tight")
+	fig.savefig("figs/facct_submission/%s_%s_%s.pdf" % (file_prefix, dataset_name, metric_name), bbox_inches = "tight")
+	# fig_agg.savefig("figs/facct_submission/%s_unfairness_%s.pdf" % (file_prefix, dataset_name), bbox_inches = "tight")
 
 	return 
 
-def _performance_by_gamma(dataset_name, R_train, R_val, R_test, figure_values, k=10, step_size=10):
+def _performance_by_gamma(dataset_name, R_train, R_val, R_test, figure_values, k=20, step_size=10):
 	'''
 		R_train and R_val do not need to be binary but R_test needs to be binary
 	'''
 
-	metrics = ["Testing User Recall", "Training Item Performance", "Specialization"]
+	metrics = [f"Recall@{k}", "Training Item Performance", "Specialization"]
 	# max_r = min(min(R_train.shape), 500)
 	# rs = np.arange(1, max_r + 1, step_size)
-	fig_agg, axs = plt.subplots(ncols = len(metrics), figsize = (7 * len(metrics), 7))
+	fig_agg, axs = plt.subplots(ncols = len(metrics), figsize = (8 * len(metrics), 5.00))
 
 	gammas = np.arange(-2, 0, 0.1)
 	gammas = np.concatenate((gammas, np.array([0])))
@@ -364,7 +386,8 @@ def _performance_by_gamma(dataset_name, R_train, R_val, R_test, figure_values, k
 			np.zeros(R_train.shape), 
 			R_train + R_val, 
 			low_cols, med_cols, high_cols,
-			pops)
+			pops,
+			metric_name="AUC")
 		overall_total = len(high_cols) * high[0] + len(med_cols) * med[0] + len(low_cols) * low[0]
 		training_item_metric.append(overall_total / R_train.shape[1])
 
@@ -399,7 +422,8 @@ def _performance_by_gamma(dataset_name, R_train, R_val, R_test, figure_values, k
 			np.zeros(R_train.shape), 
 			R_train + R_val, 
 			low_cols, med_cols, high_cols,
-			pops)
+			pops,
+			metric_name="AUC")
 		overall_total = len(high_cols) * high[0] + len(med_cols) * med[0] + len(low_cols) * low[0]
 		overall_avg = overall_total / R_train.shape[1]
 		axs[1].hlines(overall_avg, gammas[0], gammas[-1], linestyles="dashed", label=model_name, color=colors[idx + 1])
@@ -410,10 +434,11 @@ def _performance_by_gamma(dataset_name, R_train, R_val, R_test, figure_values, k
 	for idx, ax in enumerate(axs):
 		ax.set_xlabel("gamma")
 		ax.set_ylabel(metrics[idx])
-		ax.set_title(metrics[idx])
+		# ax.set_title(metrics[idx])
+		ax.set_title(f"Performance on {utils.get_display_name(dataset_name)} w.r.t gamma")
 		ax.grid()
 		ax.legend()
-	fig_agg.savefig("figs/facct_submission/performance_by_gamma_%s.pdf" % dataset_name, bbox_width = "tight")
+	fig_agg.savefig("figs/facct_submission/performance_by_gamma_%s.pdf" % dataset_name, bbox_inches = "tight")
 
 	return
 
@@ -496,5 +521,5 @@ if __name__ == "__main__":
 	# Appendix
 	# _performance_by_gamma(dataset_name, R_train, R_val, R_test > 0, figure_values)
 
-	df = pd.DataFrame(figure_values)
-	df.to_csv("figs/facct_submission/figure_values_downstream.csv")
+	# df = pd.DataFrame(figure_values)
+	# df.to_csv(f"figs/facct_submission/figure_values_{dataset_name}_specialization.csv")

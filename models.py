@@ -237,7 +237,7 @@ if __name__ == "__main__":
 		# setting min_ratings = 10 minimizes the number of users with no test interactions
 		obj.filter(min_users = 10, min_ratings = 10)
 		R = obj.get_P()
-		# R = np.linalg.inv(np.diag(np.sum(R, axis=1))) @ R
+		R = np.linalg.inv(np.diag(np.sum(R, axis=1))) @ R
 	elif sys.argv[1] == "lastfm-small":
 		obj = lastfm.lastfm()
 		# setting min_ratings = 10 minimizes the number of users with no test interactions
@@ -247,10 +247,8 @@ if __name__ == "__main__":
 	elif sys.argv[1] == "movielens":
 		R = movielens.movielens(min_ratings = 1, min_users = 5, binary = True).get_X()
 		R[R != 0] = 1
-
 		rng = np.random.default_rng(seed=2020)
 		R = R[:, rng.choice(a=R.shape[1], size=1200, replace=False)]
-
 
 	print(R.shape)
 
@@ -263,23 +261,26 @@ if __name__ == "__main__":
 
 	taskId = int(os.getenv('SLURM_ARRAY_TASK_ID'))
 
-	ds = utils.get_ds(R)
+	# ds = utils.get_ds(R)
 
 	# gammas = [-3, -2.5, -2, -1.5, -1, -0.5, 0, 0.5, 1]
 	gammas = np.arange(-2, 0, 0.1)
-	gammas = np.concatenate((gammas, np.array([0])))
+	gammas = np.concatenate((gammas, np.array([0.0])))
 
 	# d = 32
 	gamma = -1
+	# gamma = 0
 	# gamma = gammas[taskId]
 
+
+
+	ds = [2**i for i in range(1, 11)]
 	d = ds[taskId]
 	# print("d = %i" % d)
 
-	# ds = [2**i for i in range(1, 11)]
 	# for d in ds:
 	# d = 2
-	yhat = model.predict_ratings(d = d, gamma=gamma, recompute=True, save=True, file_suffix="_unnormalized")
+	yhat = model.predict_ratings(d = d, gamma=gamma, recompute=True, save=True, file_suffix="_sparse_replicated")
 
 	# predict_partial = partial(model.predict_ratings, 
 	# 	max_iters=200,

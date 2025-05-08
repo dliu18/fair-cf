@@ -194,10 +194,11 @@ def get_specialization(model, r, low_cols, med_cols, high_cols, gamma=0, file_su
     # pops = get_inverse_cdf(np.sum(model.get_R(), axis=0))
     # pops /= np.max(pops)
 
+    percentile_90 = np.percentile(specs, 90)
     return (specs[high_cols].mean(), specs[high_cols].std()),\
         (specs[med_cols].mean(), specs[med_cols].std()),\
         (specs[low_cols].mean(), specs[low_cols].std()),\
-        gini_coef(pops, specs)
+        np.mean(specs[specs >= percentile_90])
         # np.dot(pops - np.mean(pops), specs - np.mean(specs))
         # pearsonr(pops / np.max(pops), specs / np.max(specs))[0]
 
@@ -386,6 +387,13 @@ def update_metrics(X, Xs, proj, r, results, algorithm_name):
     results[algorithm_name]["Nash Error"]["metric"].append(nash_obj(Xs, proj))
     results[algorithm_name]["Nash Error"]["r"].append(r)
 
+def get_display_name(name):
+    if "lastfm" in name:
+        return "LastFM"
+    elif "movielens" in name:
+        return "MovieLens"
+    else:
+        return name
 
 if __name__ == "__main__":
     R = movielens.movielens(min_ratings = 1, min_users = 5, binary = True).get_X()

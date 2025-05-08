@@ -12,7 +12,7 @@ source ~/.bashrc
 mamba activate fair-ranking
 work
 cd fair-cf
-python models_copy.py lastfm-explicit
+python models.py lastfm-explicit
 
 #LastFM array size = 24
 #movielens array size = 22 
