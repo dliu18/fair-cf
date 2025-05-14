@@ -113,14 +113,14 @@ class ItemWeightedPCA(BaseModel):
 				max_iters=max_iters,
 				time_limit_secs=60 * 60, 
 				verbose=verbose)
-				# use_indirect=False,
+				# use_indirect=True)
 				# mkl=False, 
 				# gpu=False)
 		else:
 			prob.solve(solver=cp.SCS, 
 				verbose=verbose,
 				time_limit_secs=60*60)
-				# use_indirect=False,
+				# use_indirect=True)
 				# mkl=False, 
 				# gpu=False)
 			
@@ -259,7 +259,7 @@ if __name__ == "__main__":
 	print("Minimum number of users: %f" % np.min(np.sum(R_train + R_val, axis=0)))
 	model = ItemWeightedPCA(R_train + R_val, sys.argv[1])
 
-	taskId = int(os.getenv('SLURM_ARRAY_TASK_ID'))
+	# taskId = int(os.getenv('SLURM_ARRAY_TASK_ID'))
 
 	# ds = utils.get_ds(R)
 
@@ -274,13 +274,13 @@ if __name__ == "__main__":
 
 
 
-	ds = [2**i for i in range(1, 11)]
-	d = ds[taskId]
+	# ds = [2**i for i in range(1, 11)]
+	# d = ds[taskId]
 	# print("d = %i" % d)
 
 	# for d in ds:
-	# d = 2
-	yhat = model.predict_ratings(d = d, gamma=gamma, recompute=True, save=True, file_suffix="_sparse_replicated")
+	d = 2
+	yhat = model.predict_ratings(d = d, gamma=gamma, recompute=True, save=True, file_suffix=sys.argv[2])
 
 	# predict_partial = partial(model.predict_ratings, 
 	# 	max_iters=200,

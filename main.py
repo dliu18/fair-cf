@@ -142,7 +142,7 @@ def _aggregate_performance(dataset_name, R_train, R_val, R_test, figure_values, 
 	# if "lastfm" not in dataset_name:
 	# 	model_list.append(("LightGCN", models.LightGCN(R_train + R_val, dataset_name)))
 	# metrics = ["Recall", "Precision", "NDCG", "MRR"]
-	metrics = ["Recall", "NDCG"]
+	metrics = ["Precision", "NDCG"]
 
 	# max_r = min(min(R_train.shape), 500)
 	# rs = np.arange(1, max_r + 1, step_size)
@@ -176,11 +176,13 @@ def _aggregate_performance(dataset_name, R_train, R_val, R_test, figure_values, 
 			if r == 32:
 				axs_tradeoff.scatter(recalls[-1], unfairness[-1], label=model_name, color=colors[idx])
 
-		axs[0].plot(plt_rs, recalls, label=model_name, color=colors[idx], linewidth=2)
+		# axs[0].plot(plt_rs, recalls, label=model_name, color=colors[idx], linewidth=2)
+		axs[0].plot(plt_rs, precisions, label=model_name, color=colors[idx], linewidth=2)
 		axs[1].plot(plt_rs, ndcgs, label=model_name, color=colors[idx], linewidth=2)
 		# axs[1].plot(plt_rs, precisions, label=model_name, color=colors[idx], linewidth=2)
-		# axs[2].plot(plt_rs, mrrs, label=model_name, color=colors[idx], linewidth=2)
-		# axs[3].plot(plt_rs, ndcgs, label=model_name, color=colors[idx], linewidth=2)
+		# axs[2].plot(plt_rs, ndcgs, label=model_name, color=colors[idx], linewidth=2)
+		# axs[3].plot(plt_rs, mrrs, label=model_name, color=colors[idx], linewidth=2)
+
 		# axs[4].plot(rs, unfairness, label=model_name, color=colors[idx], linewidth=2)
 
 		figure_values.append({
@@ -190,26 +192,26 @@ def _aggregate_performance(dataset_name, R_train, R_val, R_test, figure_values, 
 			"rs": plt_rs,
 			"values": recalls
 			})
-		# figure_values.append({
-		# 	"Metric": "Precision",
-		# 	"Algorithm": model_name,
-		# 	"Popularity": "Overall",
-		# 	"rs": plt_rs,
-		# 	"values": precisions
-		# 	})
-		# figure_values.append({
-		# 	"Metric": "MRR",
-		# 	"Algorithm": model_name,
-		# 	"Popularity": "Overall",
-		# 	"rs": plt_rs,
-		# 	"values": mrrs
-		# 	})
+		figure_values.append({
+			"Metric": "Precision",
+			"Algorithm": model_name,
+			"Popularity": "Overall",
+			"rs": plt_rs,
+			"values": precisions
+			})
 		figure_values.append({
 			"Metric": "NDCG",
 			"Algorithm": model_name,
 			"Popularity": "Overall",
 			"rs": plt_rs,
 			"values": ndcgs
+			})
+		figure_values.append({
+			"Metric": "MRR",
+			"Algorithm": model_name,
+			"Popularity": "Overall",
+			"rs": plt_rs,
+			"values": mrrs
 			})
 
 	for idx, ax in enumerate(axs):
@@ -522,4 +524,4 @@ if __name__ == "__main__":
 	# _performance_by_gamma(dataset_name, R_train, R_val, R_test > 0, figure_values)
 
 	# df = pd.DataFrame(figure_values)
-	# df.to_csv(f"figs/facct_submission/figure_values_{dataset_name}_specialization.csv")
+	# df.to_csv(f"figs/facct_submission/figure_values_{dataset_name}.csv")
