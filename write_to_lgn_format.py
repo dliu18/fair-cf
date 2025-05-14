@@ -8,7 +8,7 @@ import utils
 import sys
 
 def write_to_file(ratings, dataset_name, split):
-    with open("LightGCN-PyTorch/data/{}/{}.txt".format(dataset_name, split), "w") as txtfile:
+    with open("LightGCN/data/{}/{}.txt".format(dataset_name, split), "w") as txtfile:
         all_item_idxs = np.array(range(ratings.shape[1]))
         for u_idx in range(len(ratings)):
             item_idxs = all_item_idxs[ratings[u_idx] > 0]
