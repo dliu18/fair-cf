@@ -1,10 +1,11 @@
-# Output the lastfm dataset used in the fair PCA paper to the format that LightGCN expects
+'''
+Output the lastfm dataset used in the fair PCA paper to the format that LightGCN expects
+Usage: python write_to_lgn_format.py 
+'''
 
 from loaders import lastfm, movielens
 import numpy as np
-
 import utils
-
 import sys
 
 def write_to_file(ratings, dataset_name, split):
@@ -44,4 +45,3 @@ if __name__ == "__main__":
 
     write_to_file(R_train + R_val, dataset_name, "train")
     write_to_file(R_test, dataset_name, "test")
-    

@@ -1,4 +1,7 @@
-Code to Reproduce KDD 2024 Submission "When Collaborative Filtering is not Collaborative: Unfairness of PCA for Recommendations"
+**["When Collaborative Filtering is not Collaborative: Unfairness of PCA for Recommendations"](https://arxiv.org/abs/2310.09687)**
+[David Liu](https://dliu18.github.io/), Jackie Baek, Tina Eliassi-Rad
+Published FAccT'25
+
 
 ## General Notes
 
@@ -8,27 +11,42 @@ Code to Reproduce KDD 2024 Submission "When Collaborative Filtering is not Colla
 
 ## Data
 The datasets can be accessed from the GroupLens website. For LastFM, download the following [zip file](https://files.grouplens.org/datasets/hetrec2011/hetrec2011-lastfm-2k.zip) and unzip the files into `data/lastfm`. For MovieLens, download the following [zip file](https://files.grouplens.org/datasets/movielens/ml-1m.zip) and place the unzipped folder (`ml-1m`) into `data/`.
-    
-## Instruction to reproduce results
 
-The first step is to run our algorithm Item-Preference PCA on the LastFM and Movielens datasets for all values of r. To do so, execute:
+To create the train/test datasets for LightGCN, execute:
 ```
-    python max_prediction.py lastfm all
-    python max_prediction.py movielens all
-    
-    python max_prediction_filter.py lastfm
-    python max_prediction_filter.py movielens
+python write_to_lgn_format.py lastfm
+python write_to_lgn_format.py movielens
 ```
-Each line above requires approximately 3 hours of runtime on a machine with Intel Xeon E5-2690 CPUs, 2.6GHz, 30 MB of cache.
 
-The latter two lines are for the robustness results. 
+## Execution
+   
+### Training Item-Weighted PCA
 
-Now, the Figures can be reproduced by executing the Jupyter notebooks.
-To reproduce 
-* Figure 1, execute `Teaser.ipynb`
-* Figures 2, 3, 4, 5, 7 execute `Item-Preference PCA Evaluation.ipynb`
-* Figure 6 execute `Bernoulli matrix eigenvalue scaling.ipynb`
+Three different calls to `sbatch.sh`
+
+### Training LightGCN
+
+Execute `sweep_dimensions.sh` in `LightGCN/code`.
+
+```
+./sweep_dimensions.sh movielens
+```
+
+The script already calls `read_models.py`.
+
+
+### Instruction to reproduce results in paper
+
+Three different calls to `main.py`
+
 
 ## Miscellaneous
 
-We found that multiplying the Movielens matrix by a constant factor of 1/100 greatly improved runtime. Multiplying by a constant factor does not affect the solution for Item-Preference PCA given that the objective function is linear.
+Utilize the script `python check_pickle.py file_suffix` to view the contents of an Item-Weighted PCA pickle file. Specify the pickle file with a file_suffix (the "file_suffix" passed to `models.py`). 
+
+The teaser figure (Figure 1), can be reproduced via `Teaser.ipynb`.
+
+The empirical validation in Figure 5 can be reproduced via `Bernoulli matrix eigenvalue scaling.ipynb`.
+
+
+
