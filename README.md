@@ -1,5 +1,7 @@
 **["When Collaborative Filtering is not Collaborative: Unfairness of PCA for Recommendations"](https://arxiv.org/abs/2310.09687)**
+
 [David Liu](https://dliu18.github.io/), Jackie Baek, Tina Eliassi-Rad
+
 Published FAccT'25
 
 

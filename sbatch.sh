@@ -14,6 +14,10 @@ work
 cd fair-cf
 python models.py lastfm-explicit _sparse
 
+# Sparse
+
+# Dense 
 #LastFM array size = 24
 #movielens array size = 22 
 
+# Gammas 
