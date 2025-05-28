@@ -1,0 +1,7 @@
+__pycache__/*
+data/*
+pickles/*
+**.pyc
+figs/*
+logs/*
+obsolete/*

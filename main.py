@@ -475,8 +475,6 @@ if __name__ == "__main__":
 	else:
 		raise NotImplementedError("The %s dataset is not available" % dataset_name)
 
-	rs = [2**i for i in range(2, 11)]
-	# rs = utils.get_ds(R)
 	R_train, R_val, R_test = utils.split_data(R, 
 		val_ratio = 0.1, 
 		test_ratio = 0.2)
@@ -515,10 +513,15 @@ if __name__ == "__main__":
 	# print([np.percentile(user_scores, percent) for percent in np.arange(0, 100, 10)])
 
 	figure_values = []
+	# Uncomment depending on the figure
+
+	# rs = [2**i for i in range(2, 11)]
+	# rs = utils.get_ds(R)
+
 	# _specialization(dataset_name, R_train, R_val, figure_values)
 	# _performance_by_popularity(dataset_name, R_train, R_val, R_test > 0, figure_values, metric_name="Precision", out_sample=False)
 	# _performance_by_popularity(dataset_name, R_train, R_val, R_test > 0, figure_values, metric_name="AUC", out_sample=False)
-	_aggregate_performance(dataset_name, R_train, R_val, R_test > 0, figure_values)
+	# _aggregate_performance(dataset_name, R_train, R_val, R_test > 0, figure_values)
 
 	# Appendix
 	# _performance_by_gamma(dataset_name, R_train, R_val, R_test > 0, figure_values)
