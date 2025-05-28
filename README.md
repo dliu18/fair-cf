@@ -6,6 +6,8 @@ Published at FAccT'25
 
 [ArXiv](https://arxiv.org/abs/2310.09687)
 
+[![DOI](https://zenodo.org/badge/873268096.svg)](https://doi.org/10.5281/zenodo.15538133)
+
 ## General Notes
 
 * A conda yml file specifying the computing environment can be found in environment.yml.
