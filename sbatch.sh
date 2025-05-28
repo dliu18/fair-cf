@@ -14,10 +14,17 @@ work
 cd fair-cf
 python models.py lastfm-explicit _sparse
 
-# Sparse
 
-# Dense 
-#LastFM array size = 24
-#movielens array size = 22 
+# Num of jobs to instantiate 
 
-# Gammas 
+# _sparse
+# lastfm-explicit --array=0-9%25
+# movielens --array=0-9%25
+
+# _dense
+# lastfm-explicit --array=0-23%25
+# movielens --array=0-21%25
+
+# _sweep_gamma 
+# lastfm-explicit --array=0-20%25
+# movielens --array=0-20%25

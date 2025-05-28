@@ -24,7 +24,12 @@ python write_to_lgn_format.py movielens
    
 ### Training Item-Weighted PCA
 
-Three different calls to `sbatch.sh`
+All of the models are implemented in `models.py`. It is best to generate the Item-Weighted PCA projection matrices in advance and save them to intermediary files. For the paper, we generate three batches of results, differing in how they define $d$ and $\gamma$. The three batches are:
+* _sparse_: fixes $\gamma=-1$ and runs Item-Weighted PCA for $d \in \{2, 4, 8, ... , 1024\}$.
+* _dense_: also fixes $\gamma=-1$ but does a more fine grained sweep of $d$.
+* _sweep gamma_: fixes $d=32$ and sweeps $\gamma \in \{-2, -1.9, ... , 0\}
+
+All of the batches can be executed with `sbatch sbatch.sh`. Before each call, update line 4 with the correct number of jobs, as documented in the same file. Also, in `models.py`, uncomment the corresponding code block in the main function.  
 
 ### Training LightGCN
 
