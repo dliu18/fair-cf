@@ -53,7 +53,7 @@ python main.py lastfm-explicit -1 dense
 python main.py movielens -1 dense
 ``` 
 
-* Figure 3: Uncomment the call to `_performance_by_popularity`. Note that setting `out_sample=False` ensures that the performance metrics are _in-sample_. Also uncomment `rs = utils.get_ds(R)`. Execute:
+* Figure 3: Uncomment the two calls to `_performance_by_popularity` (one for precision and another for AUC-ROC). Note that setting `out_sample=False` ensures that the performance metrics are _in-sample_. Also uncomment `rs = utils.get_ds(R)`. Execute:
 ```
 python main.py lastfm-explicit -1 dense
 python main.py movielens -1 dense
